@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">NfcNci Patience</string>
+    <string name="xposed_desc">Add a 1000ms delay to NFC presence check to accommodate longer NFC smart card operations in the AOSP NfcNci implementation on certain devices (see LineageOS issue #7268)</string>
+</resources>
