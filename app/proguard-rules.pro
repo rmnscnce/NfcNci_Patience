@@ -20,11 +20,12 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--optimizationpasses 10
+-optimizationpasses 25
 -dontusemixedcaseclassnames
 -verbose
 -overloadaggressively
 -allowaccessmodification
+-repackageclasses
 
 # FreeReflection
 -keep class me.weishu.reflection.** {*;}

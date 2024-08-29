@@ -48,6 +48,11 @@ libraries:
   androidx.appcompat:
     appcompat:
       version: 1.7.0
+  androidx.preference:
+    preference:
+      version: 1.2.1
+    preference-ktx:
+      version: <this>::preference
   com.google.android.material:
     material:
       version: 1.12.0
