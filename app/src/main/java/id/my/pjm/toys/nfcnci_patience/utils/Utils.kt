@@ -4,9 +4,12 @@ import com.highcapable.yukihookapi.hook.log.YLog
 import id.my.pjm.toys.nfcnci_patience.BuildConfig
 
 object Utils {
+    // Set "false" to "true" on local development to enforce debug logging even on release build
+    const val IS_DEBUG = BuildConfig.DEBUG || false
+
     object YLogWrapper {
         fun debug(msg: String) {
-            if (BuildConfig.DEBUG) {
+            if (IS_DEBUG) {
                 YLog.debug(msg = msg)
             }
         }
