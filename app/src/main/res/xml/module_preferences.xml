@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="version"
+        android:summary="@string/pref_summary_version"
+        android:title="@string/pref_title_version" />
+    <PreferenceCategory android:title="Module settings">
+        <EditTextPreference
+            android:defaultValue="1000"
+            android:dialogMessage="@string/pref_dialog_message_timeout"
+            android:digits="0123456789"
+            android:inputType="numberDecimal"
+            android:key="timeout"
+            android:summary="@string/pref_summary_timeout"
+            android:title="@string/pref_title_timeout" />
+    </PreferenceCategory>
+</androidx.preference.PreferenceScreen>

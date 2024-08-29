@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">NfcNci Patience</string>
-    <string name="xposed_desc">Add a 1000ms delay to NFC presence check to accommodate longer NFC smart card operations in the AOSP NfcNci implementation on certain devices (see LineageOS issue #7268)</string>
+    <string name="xposed_desc">Add a delay to NFC presence check to accommodate longer NFC smart card operations in the AOSP NfcNci implementation on certain devices (see LineageOS issue #7268)</string>
+    <string name="pref_title_version">Version %1$s (%2$d) &#x2014; %3$s build</string>
+    <string name="pref_summary_version">Running on Android %1$s (SDK level %2$d)\nXposed API (version %3$d) provided by %4$s</string>
+    <string name="pref_title_timeout">NFC presence check timeout</string>
+    <string name="pref_summary_timeout">Set the NFC presence check timeout (in milliseconds) according to your needs</string>
+    <string name="pref_dialog_message_timeout">Allowed values are any whole number from 125 up to 5000</string>
 </resources>

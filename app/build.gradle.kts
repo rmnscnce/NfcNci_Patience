@@ -52,6 +52,8 @@ dependencies {
     implementation(com.github.duanhong169.drawabletoolbox)
     implementation(androidx.core.core.ktx)
     implementation(androidx.appcompat.appcompat)
+    implementation(androidx.preference.preference)
+    implementation(androidx.preference.preference.ktx)
     implementation(com.google.android.material.material)
     implementation(androidx.constraintlayout.constraintlayout)
     testImplementation(junit.junit)
