@@ -1,67 +1,67 @@
 package id.my.pjm.toys.nfcnci_patience.hook
 
-import android.nfc.NfcAdapter
-import android.os.Bundle
-import android.os.IBinder
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.configs
+import com.highcapable.yukihookapi.hook.factory.constructor
 import com.highcapable.yukihookapi.hook.factory.encase
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import id.my.pjm.toys.nfcnci_patience.utils.Utils
 import id.my.pjm.toys.nfcnci_patience.utils.Utils.YLogWrapper
 
 @InjectYukiHookWithXposed(isUsingXposedModuleStatus = false)
 class HookEntry : IYukiHookXposedInit {
+    companion object {
+        lateinit var mPresenceCheckWatchdog: Class<*>
+        lateinit var mNativeNfcTag: Class<*>
+        lateinit var mTagDisconnectedCallback: Class<*>
+    }
+
     override fun onInit() = configs {
         debugLog {
             tag = "NfcNci-Patience"
             isEnable = true
         }
+        isDebug = Utils.IS_DEBUG
         isEnableModuleAppResourcesCache = false
         isEnableDataChannel = false
     }
 
     override fun onHook() = encase {
         loadApp(name = "com.android.nfc") {
-            YLogWrapper.info(msg = "Applying NfcAdapterService hook")
+            YLogWrapper.info(msg = "Applying the NFC PresenceCheckWatchdog hook")
 
-            // Hook NfcService.updateReaderModeParams
-            "com.android.nfc.NfcService\$NfcAdapterService".toClass().method {
-                name = "updateReaderModeParams"
+            mPresenceCheckWatchdog =
+                "com.android.nfc.dhimpl.NativeNfcTag\$PresenceCheckWatchdog".toClass()
+            mNativeNfcTag = "com.android.nfc.dhimpl.NativeNfcTag".toClass()
+            mTagDisconnectedCallback =
+                "com.android.nfc.DeviceHost\$TagDisconnectedCallback".toClass()
+
+            mPresenceCheckWatchdog.constructor {
                 param(
-                    "android.nfc.IAppCallback".toClass() /* callback */,
-                    Int::class.java /* flags */,
-                    Bundle::class.java /* extras? */,
-                    IBinder::class.java /* binder */,
-                    Int::class.java /* uid */
+                    mNativeNfcTag, /* <parent::this> */
+                    Int::class.java, /* presenceCheckDelay */
+                    mTagDisconnectedCallback, /* callback */
                 )
             }.hook {
                 before {
-                    YLogWrapper.info("Hooking NFC service for uid=${args[4] as Int}")
+                    YLogWrapper.info("Hooking PresenceCheckWatchdog constructor")
 
-                    when (args[2]) {
-                        null -> {
-                            YLogWrapper.debug(msg = "Arg \"extras\" is null, instantiating a new Bundle to set presence check delay")
+                    when (args[1]) {
+                        is Int -> {
+                            val presenceCheckDelay = args[1] as Int
 
-                            var extras = Bundle()
-                            extras.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 1000)
-                            args[2] = extras
-                        }
-
-                        is Bundle -> {
-                            val extras = args[2] as Bundle
-                            val presenceCheckDelay =
-                                extras.getInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY)
-
-                            YLogWrapper.debug(msg = "Extra presence check delay: $presenceCheckDelay")
+                            YLogWrapper.debug("presenceCheckDelay: $presenceCheckDelay")
 
                             if (presenceCheckDelay < 1000) {
-                                YLogWrapper.debug(msg = "Presence check delay is less than 1000ms, setting to 1000ms")
-                                extras.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 1000)
+                                YLogWrapper.debug("presenceCheckDelay is less than 1000, setting it to 1000")
+                                args[1] = 1000
+                            } else {
+                                YLogWrapper.debug("presenceCheckDelay is already greater than or equal to 1000, leaving it as is")
                             }
-
-                            args[2] = extras
                         }
+
+                        null -> YLogWrapper.error("args[1] [com.android.nfc.dhimpl.NativeNfcTag\$PresenceCheckWatchdog::<init>] is null")
                     }
                 }
             }
