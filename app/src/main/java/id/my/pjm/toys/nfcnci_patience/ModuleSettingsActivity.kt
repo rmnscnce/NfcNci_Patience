@@ -1,103 +1,116 @@
 package id.my.pjm.toys.nfcnci_patience
 
-import android.os.Build
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.AlertDialog
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.preference.EditTextPreference
-import androidx.preference.Preference
-import androidx.preference.PreferenceDataStore
-import com.highcapable.yukihookapi.YukiHookAPI
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.highcapable.yukihookapi.hook.xposed.prefs.ui.ModulePreferenceFragment
-import id.my.pjm.toys.nfcnci_patience.utils.PreferencesManager
+import android.text.InputType
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.TextView
+import android.content.SharedPreferences
+import android.net.Uri
+import android.view.View
 
-class ModuleSettingsActivity : AppCompatActivity() {
+class ModuleSettingsActivity : Activity() {
+    private lateinit var prefs: SharedPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_module_settings)
 
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, SettingsPreferenceFragment()).commit()
+        prefs = getSharedPreferences("${BuildConfig.APPLICATION_ID}_prefs", MODE_PRIVATE)
+
+        actionBar?.subtitle = getString(
+            R.string.module_version_subtitle,
+            BuildConfig.VERSION_NAME,
+            BuildConfig.VERSION_CODE,
+            BuildConfig.BUILD_TYPE
+        )
+
+        setupTimeout()
+    }
+
+
+    private fun setupTimeout() {
+        val summaryView = findViewById<TextView>(R.id.timeout_summary)
+        val currentTimeout = prefs.getString("timeout", null) ?: "1000"
+        summaryView.text = getString(R.string.pref_summary_timeout_value, currentTimeout)
+
+        findViewById<View>(R.id.timeout_item).setOnClickListener {
+            showTimeoutDialog(summaryView)
         }
     }
 
-    private class SettingsPreferenceDataStore : PreferenceDataStore() {
-        override fun getString(key: String?, defValue: String?): String {
-            return when (key) {
-                PreferencesManager.TIMEOUT -> PreferencesManager.timeout
-                else -> {
-                    throw IllegalArgumentException("Unknown key: $key")
-                }
-            }
+    private fun showTimeoutDialog(summaryView: TextView) {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(prefs.getString("timeout", null) ?: "1000")
+            setSelection(text.length)
         }
 
-        override fun putString(key: String?, value: String?) {
-            when (key) {
-                PreferencesManager.TIMEOUT -> PreferencesManager.timeout = value!!
-                else -> {
-                    throw IllegalArgumentException("Unknown key: $key")
+        val container = FrameLayout(this).apply {
+            val dp16 = (16 * resources.displayMetrics.density).toInt()
+            setPadding(dp16, 0, dp16, 0)
+            addView(input)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.pref_title_timeout)
+            .setMessage(R.string.pref_dialog_message_timeout)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val str = input.text.toString()
+                val v = str.toIntOrNull() ?: return@setPositiveButton
+                if (v > 5000) {
+                    showHighTimeoutWarning(str, summaryView)
+                } else {
+                    saveTimeout(str, summaryView)
                 }
             }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val v = s?.toString()?.toIntOrNull()
+                val isValid = v != null && v >= 125
+                input.error = if (isValid) null else getString(R.string.pref_error_timeout_invalid)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = isValid
+            }
+        })
+
+        dialog.setOnShowListener {
+            val v = input.text.toString().toIntOrNull()
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = v != null && v >= 125
         }
+
+        dialog.show()
     }
 
-    internal class SettingsPreferenceFragment : ModulePreferenceFragment() {
-        override fun onCreatePreferencesInModuleApp(savedInstanceState: Bundle?, rootKey: String?) {
-            preferenceManager?.preferenceDataStore = SettingsPreferenceDataStore()
-            setPreferencesFromResource(R.xml.module_preferences, rootKey)
+    private fun showHighTimeoutWarning(value: String, summaryView: TextView) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pref_warning_timeout_title)
+            .setMessage(R.string.pref_warning_timeout_message)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                saveTimeout(value, summaryView)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
 
-            val version = preferenceScreen.findPreference<Preference>(PreferencesManager.VERSION)
-
-            version?.title = String.format(
-                getString(R.string.pref_title_version),
-                BuildConfig.VERSION_NAME,
-                BuildConfig.VERSION_CODE,
-                BuildConfig.BUILD_TYPE
+    private fun saveTimeout(value: String, summaryView: TextView) {
+        with(prefs.edit()) {
+            putString("timeout", value)
+            apply()
+        }
+        summaryView.text = getString(R.string.pref_summary_timeout_value, value)
+        runCatching {
+            contentResolver.notifyChange(
+                Uri.parse("content://${BuildConfig.APPLICATION_ID}.provider/config"), null
             )
-            version?.summary = String.format(
-                getString(R.string.pref_summary_version),
-                Build.VERSION.RELEASE,
-                Build.VERSION.SDK_INT,
-                YukiHookAPI.Status.Executor.apiLevel,
-                YukiHookAPI.Status.Executor.name
-            )
-
-            val timeout =
-                preferenceScreen.findPreference<EditTextPreference>(PreferencesManager.TIMEOUT)
-
-            timeout?.onPreferenceChangeListener =
-                Preference.OnPreferenceChangeListener { preference, newValue ->
-                    when (preference.key) {
-                        PreferencesManager.TIMEOUT -> {
-                            val value = newValue as String
-                            try {
-                                val intValue = value.toInt()
-                                if (intValue in 125..5000) {
-                                    true
-                                } else if (intValue > 5000) {
-                                    MaterialAlertDialogBuilder(requireContext())
-                                        .setTitle(R.string.pref_warning_timeout_title)
-                                        .setMessage(R.string.pref_warning_timeout_message)
-                                        .setPositiveButton(android.R.string.ok) { _, _ ->
-                                            timeout.text = value
-                                        }
-                                        .setNegativeButton(android.R.string.cancel, null)
-                                        .show()
-                                    false
-                                } else {
-                                    false
-                                }
-                            } catch (e: NumberFormatException) {
-                                false
-                            }
-                        }
-
-                        else -> {
-                            false
-                        }
-                    }
-                }
         }
     }
 }

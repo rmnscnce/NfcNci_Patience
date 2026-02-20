@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.ksp)
 }
 
 val gitCommitCount = providers.exec {
@@ -25,6 +24,7 @@ android {
         versionCode = verCode
         versionName = "0.2.0" + if (gitCommitHash.isNotEmpty()) "-$gitCommitHash" else ""
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        androidResources.localeFilters.add("en")
     }
     buildTypes {
         release {
@@ -40,25 +40,20 @@ android {
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
     }
     lint { checkReleaseBuilds = false }
+    packaging {
+        resources.excludes += setOf(
+            "kotlin/**",
+            "META-INF/**",
+            "DebugProbesKt.bin"
+        )
+    }
 }
 
 dependencies {
     compileOnly(libs.xposed.api)
-    implementation(libs.yukihookapi.api)
-    ksp(libs.yukihookapi.ksp)
-    implementation(libs.drawabletoolbox)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.preference)
-    implementation(libs.androidx.preference.ktx)
-    implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
 }
 
 kotlin {

@@ -1,11 +1,12 @@
 <resources>
     <string name="app_name">NfcNci Patience</string>
     <string name="xposed_desc">Add a delay to NFC presence check to accommodate longer NFC smart card operations in the AOSP NfcNci implementation on certain devices (see LineageOS issue #7268)</string>
-    <string name="pref_title_version">Version %1$s (%2$d) &#x2014; %3$s build</string>
-    <string name="pref_summary_version">Running on Android %1$s (SDK level %2$d)\nXposed API (version %3$d) provided by %4$s</string>
+    <string name="pref_category_module">Module settings</string>
     <string name="pref_title_timeout">NFC presence check timeout</string>
-    <string name="pref_summary_timeout">Set the NFC presence check timeout (in milliseconds) according to your needs</string>
-    <string name="pref_dialog_message_timeout">Allowed values are any whole number from 125</string>
+    <string name="pref_summary_timeout_value">%1$s ms</string>
+    <string name="pref_dialog_message_timeout">Enter the desired timeout in milliseconds (no less than 125 ms)</string>
+    <string name="pref_error_timeout_invalid">Please enter a valid number</string>
     <string name="pref_warning_timeout_title">Warning</string>
-    <string name="pref_warning_timeout_message">Values above 5000 ms violate the ISO14443-4 FWTmax limit and may cause unexpected behavior.\n\nAre you sure you want to proceed?</string>
+    <string name="pref_warning_timeout_message">Values above 5000 ms violate the ISO14443–4 FWTmax limit and may cause unexpected behavior.\n\nAre you sure you want to proceed?</string>
+    <string name="module_version_subtitle">%1$s (%2$d) [%3$s]</string>
 </resources>

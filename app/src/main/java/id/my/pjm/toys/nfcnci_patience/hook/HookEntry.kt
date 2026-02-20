@@ -1,100 +1,89 @@
 package id.my.pjm.toys.nfcnci_patience.hook
 
-import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.configs
-import com.highcapable.yukihookapi.hook.factory.constructor
-import com.highcapable.yukihookapi.hook.factory.encase
-import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
-import de.robv.android.xposed.XSharedPreferences
-import id.my.pjm.toys.nfcnci_patience.BuildConfig
-import id.my.pjm.toys.nfcnci_patience.utils.PreferencesManager.TIMEOUT
-import id.my.pjm.toys.nfcnci_patience.utils.Utils
-import id.my.pjm.toys.nfcnci_patience.utils.Utils.YLogWrapper
-import kotlin.properties.Delegates
+import android.app.Application
+import android.content.Context
+import android.database.ContentObserver
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import de.robv.android.xposed.IXposedHookLoadPackage
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
+import de.robv.android.xposed.XposedHelpers
+import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
-@InjectYukiHookWithXposed(isUsingXposedModuleStatus = true)
-class HookEntry : IYukiHookXposedInit {
+class HookEntry : IXposedHookLoadPackage {
     private companion object {
-        lateinit var mPresenceCheckWatchdog: Class<*>
-        lateinit var mNativeNfcTag: Class<*>
-        lateinit var mTagDisconnectedCallback: Class<*>
+        const val TAG = "NfcNci-Patience"
+    }
 
-        var timeout by Delegates.notNull<Int>()
+    @Volatile
+    private var currentTimeout = 1000
 
-        object Preferences {
-            private lateinit var prefs: XSharedPreferences
+    private val providerUri = Uri.parse("content://id.my.pjm.toys.nfcnci_patience.provider/config")
 
-            private fun prefs(): XSharedPreferences {
-                prefs = XSharedPreferences(
-                    BuildConfig.APPLICATION_ID, "${BuildConfig.APPLICATION_ID}_prefs"
-                )
-                return prefs
-            }
-
-            val timeout
-                get() = try {
-                    prefs().getString(TIMEOUT, "1000")!!.toInt()
-                } catch (e: NumberFormatException) {
-                    YLogWrapper.warn("Saved timeout preference value is not a number, setting it to 1000")
-
-                    1000
+    private fun updateConfig(context: Context) {
+        runCatching {
+            context.contentResolver.query(
+                Uri.withAppendedPath(providerUri, "timeout"), null, null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    currentTimeout = cursor.getString(0).toIntOrNull() ?: 1000
+                    XposedBridge.log("$TAG: Updated timeout from provider to $currentTimeout ms")
                 }
+            }
+        }.onFailure {
+            XposedBridge.log("$TAG: Failed to update config from provider")
+            XposedBridge.log(it)
         }
     }
 
-    override fun onInit() = configs {
-        debugLog {
-            tag = "NfcNci-Patience"
-            isEnable = true
-        }
-        isDebug = Utils.IS_DEBUG
-        isEnableHookSharedPreferences = true
-        isEnableModuleAppResourcesCache = false
-        isEnableDataChannel = false
-    }
+    override fun handleLoadPackage(lpparam: LoadPackageParam) {
+        if (lpparam.packageName != "com.android.nfc") return
 
-    override fun onHook() = encase {
-        loadApp(name = "com.android.nfc") {
-            YLogWrapper.info(msg = "Applying the NFC PresenceCheckWatchdog hook")
+        XposedBridge.log("$TAG: Applying hooks")
 
-            mPresenceCheckWatchdog =
-                "com.android.nfc.dhimpl.NativeNfcTag\$PresenceCheckWatchdog".toClass()
-            mNativeNfcTag = "com.android.nfc.dhimpl.NativeNfcTag".toClass()
-            mTagDisconnectedCallback =
-                "com.android.nfc.DeviceHost\$TagDisconnectedCallback".toClass()
-
-            @Suppress("DEPRECATION")
-            mPresenceCheckWatchdog.constructor {
-                param(
-                    mNativeNfcTag, /* <parent::this> */
-                    Int::class.java, /* presenceCheckDelay */
-                    mTagDisconnectedCallback, /* callback */
-                )
-            }.hook {
-                before {
-                    YLogWrapper.info("Hooking PresenceCheckWatchdog constructor")
-
-                    timeout = Preferences.timeout
-                    YLogWrapper.info("Timeout is set to $timeout")
-
-                    when (args[1]) {
-                        is Int -> {
-                            val presenceCheckDelay = args[1] as Int
-
-                            YLogWrapper.debug("presenceCheckDelay: $presenceCheckDelay")
-
-                            if (presenceCheckDelay < timeout) {
-                                YLogWrapper.debug("presenceCheckDelay is less than $timeout, setting it to $timeout")
-                                args[1] = timeout
-                            } else {
-                                YLogWrapper.debug("presenceCheckDelay is already greater than or equal to $timeout, leaving it as is")
-                            }
+        runCatching {
+            val cl = lpparam.classLoader
+            
+            XposedBridge.log("$TAG: Hooking Application.onCreate")
+            XposedHelpers.findAndHookMethod(Application::class.java, "onCreate", object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val app = param.thisObject as Application
+                    updateConfig(app)
+                    
+                    app.contentResolver.registerContentObserver(
+                        providerUri, true,
+                        object : ContentObserver(null) {
+                            override fun onChange(selfChange: Boolean) = updateConfig(app)
                         }
+                    )
+                }
+            })
 
-                        null -> YLogWrapper.error("args[1] [com.android.nfc.dhimpl.NativeNfcTag\$PresenceCheckWatchdog::<init>] is null")
+            val watchdog = XposedHelpers.findClass("com.android.nfc.dhimpl.NativeNfcTag\$PresenceCheckWatchdog", cl)
+            val tag = XposedHelpers.findClass("com.android.nfc.dhimpl.NativeNfcTag", cl)
+            val cb = XposedHelpers.findClass("com.android.nfc.DeviceHost\$TagDisconnectedCallback", cl)
+
+            XposedBridge.log("$TAG: Hooking NativeNfcTag.PresenceCheckWatchdog constructor")
+            XposedHelpers.findAndHookConstructor(watchdog, tag, Int::class.javaPrimitiveType, cb,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val timeout = currentTimeout
+                        val delay = param.args[1] as? Int ?: return
+
+                        XposedBridge.log("$TAG: presenceCheckDelay before hook: $delay ms")
+
+                        if (delay < timeout) {
+                            param.args[1] = timeout
+                            XposedBridge.log("$TAG: presenceCheckDelay after hook: $timeout ms")
+                        }
                     }
                 }
-            }
+            )
+        }.onFailure {
+            XposedBridge.log("$TAG: Hook error")
+            XposedBridge.log(it)
         }
     }
 }
