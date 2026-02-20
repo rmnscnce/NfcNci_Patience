@@ -22,11 +22,7 @@ internal object PreferencesManager {
     private const val PREFERENCES_FILE = "${BuildConfig.APPLICATION_ID}_prefs"
 
     private val preferences: SharedPreferences by lazy {
-        try {
-            module_application.getSharedPreferences(PREFERENCES_FILE, Context.MODE_WORLD_READABLE)
-        } catch (e: SecurityException) {
-            module_application.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE)
-        }
+        module_application.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE)
     }
 
     internal var timeout: String

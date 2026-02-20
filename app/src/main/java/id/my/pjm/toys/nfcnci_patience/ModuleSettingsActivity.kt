@@ -80,7 +80,7 @@ class ModuleSettingsActivity : AppCompatActivity() {
                                         .setTitle(R.string.pref_warning_timeout_title)
                                         .setMessage(R.string.pref_warning_timeout_message)
                                         .setPositiveButton(android.R.string.ok) { _, _ ->
-                                            timeout?.text = value
+                                            timeout.text = value
                                         }
                                         .setNegativeButton(android.R.string.cancel, null)
                                         .show()

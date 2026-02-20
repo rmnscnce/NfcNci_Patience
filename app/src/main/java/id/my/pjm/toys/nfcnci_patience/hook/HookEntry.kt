@@ -63,6 +63,7 @@ class HookEntry : IYukiHookXposedInit {
             mTagDisconnectedCallback =
                 "com.android.nfc.DeviceHost\$TagDisconnectedCallback".toClass()
 
+            @Suppress("DEPRECATION")
             mPresenceCheckWatchdog.constructor {
                 param(
                     mNativeNfcTag, /* <parent::this> */
