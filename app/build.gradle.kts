@@ -10,7 +10,7 @@ val gitCommitHash = providers.exec {
     commandLine("git", "rev-parse", "--verify", "--short", "HEAD")
 }.standardOutput.asText.map { it.trim() }.getOrElse("")
 
-val privateBranchCommitCount = 4 // back when it's an internal WIP project
+val privateBranchCommitCount = 4 // back when it's an internal WIP project 
 val verCode = privateBranchCommitCount + gitCommitCount
 
 android {
@@ -18,7 +18,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "id.my.pjm.toys.nfcnci_patience"
+        applicationId = namespace
         minSdk = 27
         targetSdk = 36
         versionCode = verCode
