@@ -6,11 +6,17 @@ pluginManagement {
     }
 }
 plugins {
-    id("com.highcapable.sweetdependency") version "1.0.4"
-    id("com.highcapable.sweetproperty") version "1.0.5"
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
-sweetProperty {
-    rootProject { all { isEnable = false } }
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://api.xposed.info/") }
+    }
 }
+
 rootProject.name = "NfcNci_Patience"
 include(":app")
