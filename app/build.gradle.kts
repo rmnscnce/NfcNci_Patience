@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
 }
 
+val gitCommitCount = providers.exec {
+    commandLine("git", "rev-list", "HEAD", "--count")
+}.standardOutput.asText.map { it.trim().toIntOrNull() ?: 0 }.getOrElse(0)
+
+val gitCommitHash = providers.exec {
+    commandLine("git", "rev-parse", "--verify", "--short", "HEAD")
+}.standardOutput.asText.map { it.trim() }.getOrElse("")
+
+val privateBranchCommitCount = 4 // back when it's an internal WIP project
+val verCode = privateBranchCommitCount + gitCommitCount
+
 android {
     namespace = "id.my.pjm.toys.nfcnci_patience"
     compileSdk = 34
@@ -11,8 +22,8 @@ android {
         applicationId = "id.my.pjm.toys.nfcnci_patience"
         minSdk = 27
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.2.0"
+        versionCode = verCode
+        versionName = "0.2.0" + if (gitCommitHash.isNotEmpty()) "-$gitCommitHash" else ""
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
