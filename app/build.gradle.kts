@@ -16,12 +16,12 @@ val verCode = privateBranchCommitCount + gitCommitCount
 
 android {
     namespace = "id.my.pjm.toys.nfcnci_patience"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "id.my.pjm.toys.nfcnci_patience"
         minSdk = 27
-        targetSdk = 34
+        targetSdk = 36
         versionCode = verCode
         versionName = "0.2.0" + if (gitCommitHash.isNotEmpty()) "-$gitCommitHash" else ""
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
