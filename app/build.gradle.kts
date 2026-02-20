@@ -22,7 +22,7 @@ android {
         minSdk = 27
         targetSdk = 36
         versionCode = verCode
-        versionName = "0.2.0" + if (gitCommitHash.isNotEmpty()) "-$gitCommitHash" else ""
+        versionName = "0.3.0" + if (gitCommitHash.isNotEmpty()) "-$gitCommitHash" else ""
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         androidResources.localeFilters.add("en")
     }
