@@ -5,5 +5,7 @@
     <string name="pref_summary_version">Running on Android %1$s (SDK level %2$d)\nXposed API (version %3$d) provided by %4$s</string>
     <string name="pref_title_timeout">NFC presence check timeout</string>
     <string name="pref_summary_timeout">Set the NFC presence check timeout (in milliseconds) according to your needs</string>
-    <string name="pref_dialog_message_timeout">Allowed values are any whole number from 125 up to 5000</string>
+    <string name="pref_dialog_message_timeout">Allowed values are any whole number from 125</string>
+    <string name="pref_warning_timeout_title">Warning</string>
+    <string name="pref_warning_timeout_message">Values above 5000 ms violate the ISO14443-4 FWTmax limit and may cause unexpected behavior.\n\nAre you sure you want to proceed?</string>
 </resources>

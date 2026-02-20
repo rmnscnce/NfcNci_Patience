@@ -35,15 +35,10 @@ internal object PreferencesManager {
             try {
                 value.toInt().let {
                     when {
-                        it in 125..5000 -> preferences.edit().putString(TIMEOUT, value).apply()
+                        it >= 125 -> preferences.edit().putString(TIMEOUT, value).apply()
                         it < 125 -> {
                             Log.w("Timeout value is too low, setting to 125")
                             preferences.edit().putString(TIMEOUT, "125").apply()
-                        }
-
-                        else -> {
-                            Log.w("Timeout value is too high, setting to 5000")
-                            preferences.edit().putString(TIMEOUT, "5000").apply()
                         }
                     }
                 }

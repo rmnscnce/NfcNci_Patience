@@ -7,6 +7,7 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceDataStore
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highcapable.yukihookapi.hook.xposed.prefs.ui.ModulePreferenceFragment
 import id.my.pjm.toys.nfcnci_patience.utils.PreferencesManager
 
@@ -71,13 +72,21 @@ class ModuleSettingsActivity : AppCompatActivity() {
                         PreferencesManager.TIMEOUT -> {
                             val value = newValue as String
                             try {
-                                value.toInt().let {
-                                    when {
-                                        it in 125..5000 -> true
-                                        else -> {
-                                            false
+                                val intValue = value.toInt()
+                                if (intValue in 125..5000) {
+                                    true
+                                } else if (intValue > 5000) {
+                                    MaterialAlertDialogBuilder(requireContext())
+                                        .setTitle(R.string.pref_warning_timeout_title)
+                                        .setMessage(R.string.pref_warning_timeout_message)
+                                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                                            timeout?.text = value
                                         }
-                                    }
+                                        .setNegativeButton(android.R.string.cancel, null)
+                                        .show()
+                                    false
+                                } else {
+                                    false
                                 }
                             } catch (e: NumberFormatException) {
                                 false
